@@ -7,5 +7,6 @@ target 'newsapp' do
 
   # Pods for newsapp
 pod 'Alamofire'
+pod 'SDWebImage', '~> 5.0'
 
 end
