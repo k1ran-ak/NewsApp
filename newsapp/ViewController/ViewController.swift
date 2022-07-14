@@ -18,12 +18,17 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
     //MARK: - Local Variable
     
     var articles = [Article]()
+    lazy var refreshControl = UIRefreshControl()
+    lazy var activityIndicator = UIActivityIndicatorView(style: .medium)
     
     //MARK: - Class functions
-    
+   
     override func viewDidLoad() {
         super.viewDidLoad()
-        getData()
+        getData(isRefreshEnabled: true)
+        refreshControl.attributedTitle = NSAttributedString(string: "Pull to refresh")
+        refreshControl.addTarget(self, action: #selector(self.refresh(_:)), for: .valueChanged)
+        newsTV.refreshControl = refreshControl
         newsTV.delegate = self
         newsTV.dataSource = self
         newsTV.register(UINib(nibName: "NewsTVC", bundle: nil), forCellReuseIdentifier: "NewsTVC")
@@ -31,19 +36,29 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
     
     //MARK: - Fetch data from web
     
-    func getData() {
-        let activityIndicator = UIActivityIndicatorView(style: .medium)
-        activityIndicator.center = CGPoint(x: view.frame.size.width*0.5, y: view.frame.size.height*0.5)
-        activityIndicator.startAnimating()
-        view.addSubview(activityIndicator)
+    func getData(isRefreshEnabled : Bool) {
+        if isRefreshEnabled {
+            activityIndicator.center = CGPoint(x: view.frame.size.width*0.5, y: view.frame.size.height*0.5)
+            activityIndicator.startAnimating()
+            view.addSubview(activityIndicator)
+        }
         let request = AF.request("https://newsapi.org/v2/top-headlines?sources=techcrunch&apiKey=d8fa64f1d8184ea78504cdcd45ab64d6")
         request.responseDecodable(of: News.self) { (response) in
             guard let data = response.value else { return }
             self.articles = data.articles
-            activityIndicator.stopAnimating()
-            activityIndicator.removeFromSuperview()
+            self.refreshControl.endRefreshing()
+            if isRefreshEnabled {
+                self.activityIndicator.stopAnimating()
+                self.activityIndicator.removeFromSuperview()
+            }
             self.newsTV.reloadData()
         }
+    }
+    
+    //MARK: - Refresh Control Functions
+    @objc func refresh(_ sender: AnyObject) {
+    refreshControl.beginRefreshing()
+        getData(isRefreshEnabled: false)
     }
     
     //MARK: - Tableview delegates and datasource
@@ -56,7 +71,7 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         let  cell = tableView.dequeueReusableCell(withIdentifier: "NewsTVC", for: indexPath) as! NewsTVC
         cell.newsImage.sd_setImage(with: URL(string: articles[indexPath.row].urlToImage))
         cell.newsTitle.text = articles[indexPath.row].title
-        cell.newsAuthor.text = articles[indexPath.row].author
+        cell.newsAuthor.text = "By "+articles[indexPath.row].author
         cell.newsDescription.text = articles[indexPath.row].articleDescription
         return cell
     }
