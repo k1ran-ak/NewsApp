@@ -1,2 +1,2 @@
 # NewsApp
-A simple News App
+A simple News App made with UITableView
